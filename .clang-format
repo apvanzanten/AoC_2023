@@ -1,0 +1,37 @@
+﻿---
+BasedOnStyle: LLVM
+
+AlignAfterOpenBracket: Align
+AlignConsecutiveMacros: 'true'
+AlignConsecutiveAssignments: 'true'
+AlignConsecutiveDeclarations: 'true'
+
+AllowShortBlocksOnASingleLine: 'true'
+AllowShortCaseLabelsOnASingleLine: 'true'
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: 'true'
+
+ColumnLimit: 120
+
+
+BinPackArguments: 'false'
+BinPackParameters: 'false'
+AllowAllParametersOfDeclarationOnNextLine: 'false'
+AllowAllArgumentsOnNextLine: 'false'
+
+AlwaysBreakTemplateDeclarations: Yes
+
+NamespaceIndentation: 'Inner'
+
+SpaceBeforeParens: 'Never'
+
+PointerAlignment: 'Middle'
+ReferenceAlignment: 'Middle'
+
+ReflowComments: 'true'
+
+PenaltyReturnTypeOnItsOwnLine: 10000
+PenaltyBreakBeforeFirstCallParameter: 10000
+
+...

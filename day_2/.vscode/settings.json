@@ -1,0 +1,28 @@
+{  
+  "editor.rulers": [
+    100
+  ],
+  "[c]": {
+    "editor.formatOnSave": true
+  },
+  "cmake.buildDirectory": "${workspaceFolder}/bld_release",
+  "files.associations": {
+    "*.pio": "objective-c",
+    "*.tcc": "c",
+    "chrono": "c",
+    "iomanip": "c",
+    "limits": "c",
+    "numeric": "c",
+    "ratio": "c",
+    "streambuf": "c",
+    "tuple": "c",
+    "type_traits": "c",
+    "*.inc": "c",
+    "array": "c",
+    "hash_map": "c",
+    "string_view": "c",
+    "initializer_list": "c",
+    "log.h": "c",
+    "time.h": "c"
+  },
+}
