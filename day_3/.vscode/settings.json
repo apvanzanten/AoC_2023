@@ -1,0 +1,6 @@
+{
+  "files.associations": {
+    "*.pio": "objective-c",
+    "common.h": "c"
+  }
+}
