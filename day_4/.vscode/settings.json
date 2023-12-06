@@ -23,6 +23,7 @@
     "string_view": "c",
     "initializer_list": "c",
     "log.h": "c",
-    "time.h": "c"
+    "time.h": "c",
+    "list.h": "c"
   },
 }

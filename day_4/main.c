@@ -55,7 +55,10 @@ int main(void) {
     total_score += score;
   }
 
+  size_t num_of_cards = 0;
+  TRY(get_total_number_of_cards(&lines, &num_of_cards));
+
   TRY(destroy_lines(&lines));
 
-  return LOG_STAT(STAT_OK, "total score: %d", total_score);
+  return LOG_STAT(STAT_OK, "total score: %d, total number of cards: %zu", total_score, num_of_cards);
 }

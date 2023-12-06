@@ -4,6 +4,7 @@
 #include "lib.h"
 
 #include <cfac/darray.h>
+#include <cfac/list.h>
 
 #include <stdio.h>
 
@@ -97,20 +98,18 @@ static STAT_Val parse_card(SPN_Span card_line, Card * card) {
   return OK;
 }
 
-static STAT_Val calculate_score(const Card * card, int * score) {
+static STAT_Val calculate_win_count(const Card * card, size_t * win_count) {
   CHECK(card != NULL);
-  CHECK(score != NULL);
+  CHECK(win_count != NULL);
 
-  int win_count = 0;
+  *win_count = 0;
 
   for(const int * num_p = DAR_first(&card->numbers); num_p != DAR_end(&card->numbers); num_p++) {
     for(const int * win_num_p = DAR_first(&card->winning_numbers); win_num_p != DAR_end(&card->winning_numbers);
         win_num_p++) {
-      if(*num_p == *win_num_p) win_count++;
+      if(*num_p == *win_num_p) (*win_count)++;
     }
   }
-
-  *score = (win_count > 0) ? (1 << (win_count - 1)) : 0;
 
   return OK;
 }
@@ -127,15 +126,74 @@ STAT_Val get_card_score(SPN_Span card_line, int * score) {
   CHECK(card_line.len > 1);
   CHECK(score != NULL);
 
+  size_t win_count = 0;
+
+  TRY(get_card_win_count(card_line, &win_count));
+
+  *score = (win_count > 0) ? (1 << (win_count - 1)) : 0;
+
+  return OK;
+}
+
+STAT_Val get_card_win_count(SPN_Span card_line, size_t * win_count) {
+  CHECK(card_line.len > 1);
+  CHECK(win_count != NULL);
+
   Card card = {0};
 
   TRY(parse_card(card_line, &card));
 
-  TRY(calculate_score(&card, score));
-
-  LOG_STAT(STAT_OK, "card %d has score %d", card.id, *score);
+  TRY(calculate_win_count(&card, win_count));
 
   TRY(destroy_card(&card));
+
+  return OK;
+}
+
+STAT_Val get_total_number_of_cards(const DAR_DArray * lines, size_t * num_of_cards) {
+  CHECK(lines != NULL);
+  CHECK(lines->element_size == sizeof(DAR_DArray));
+  CHECK(num_of_cards != NULL);
+
+  DAR_DArray win_counts          = {0};
+  LST_List   to_be_counted_cards = {0};
+  TRY(DAR_create(&win_counts, sizeof(size_t)));
+  TRY(DAR_reserve(&win_counts, lines->size));
+  TRY(LST_create(&to_be_counted_cards, sizeof(size_t)));
+
+  *num_of_cards = 0;
+
+  // first get all the win counts, as well as counting each card once
+
+  for(size_t idx = 0; idx < lines->size; idx++) {
+    const DAR_DArray * line = DAR_get(lines, idx);
+
+    size_t win_count = 0;
+    TRY(get_card_win_count(DAR_to_span(line), &win_count));
+
+    TRY(DAR_push_back(&win_counts, &win_count));
+    TRY(LST_insert(&to_be_counted_cards, LST_end(&to_be_counted_cards), &idx, NULL));
+    (*num_of_cards)++;
+  }
+
+  // keep going through list of to-be-counted cards, adding copies to the end, until it is empty
+  while(!LST_is_empty(&to_be_counted_cards)) {
+    const size_t card_idx = *(size_t *)LST_data(LST_first(&to_be_counted_cards));
+    TRY(LST_remove(LST_first(&to_be_counted_cards)));
+
+    const size_t win_count = *(const int *)DAR_get(&win_counts, card_idx);
+    for(size_t i = 0; i < win_count; i++) {
+      const size_t copy_idx = card_idx + i + 1;
+
+      if(copy_idx < win_counts.size) {
+        TRY(LST_insert(&to_be_counted_cards, LST_end(&to_be_counted_cards), &copy_idx, NULL));
+        (*num_of_cards)++;
+      }
+    }
+  }
+
+  TRY(LST_destroy(&to_be_counted_cards));
+  TRY(DAR_destroy(&win_counts));
 
   return OK;
 }
