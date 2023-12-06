@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.13)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-project(AoC_Template C)
+project(day_4 C)
 
 set(CMAKE_C_STANDARD 11)
 
