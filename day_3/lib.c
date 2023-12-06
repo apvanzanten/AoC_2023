@@ -17,6 +17,10 @@ typedef struct IndexedNumber {
 static bool is_num(char c) { return (c >= '0') && (c <= '9'); }
 static bool is_symbol(char c) { return !is_num(c) && (c != '.') && (c != '\n'); }
 
+static char get_by_index(SPN_Span schematic, Index idx) {
+  return *((const char *)SPN_get(*((const SPN_Span *)SPN_get(schematic, idx.y)), idx.x));
+}
+
 static STAT_Val get_symbols(SPN_Span schematic, DAR_DArray * symbol_indices) {
   CHECK((int)schematic.len > 0);
   CHECK(schematic.element_size == sizeof(SPN_Span));
@@ -79,8 +83,8 @@ static STAT_Val get_adjacent_numbers(SPN_Span schematic, Index symbol_index, DAR
     for(int x = start_x; x <= end_x; x++) {
       char c = *(const char *)SPN_get(line, x);
       if(is_num(c)) {
-        int number  = 0;
-        int end_x   = 0;
+        int number         = 0;
+        int end_x          = 0;
         int start_of_num_x = 0;
         TRY(get_full_number(line, x, &number, &start_of_num_x, &end_x));
 
@@ -134,6 +138,51 @@ STAT_Val get_numbers_from_schematic(SPN_Span schematic, DAR_DArray * numbers) {
 
   TRY(DAR_destroy(&symbol_indices));
   TRY(DAR_destroy(&indexed_numbers));
+
+  return OK;
+}
+
+STAT_Val get_gear_ratios_from_schematic(SPN_Span schematic, DAR_DArray * ratios) {
+  CHECK((int)schematic.len > 0);
+  CHECK(schematic.element_size == sizeof(SPN_Span));
+  CHECK(ratios != NULL);
+  CHECK(DAR_is_initialized(ratios));
+  CHECK(ratios->element_size == sizeof(int));
+
+  LOG_STAT(STAT_OK, "schematic size: %zu,%zu", schematic.len, (*(const SPN_Span *)SPN_first(schematic)).len);
+
+  DAR_DArray symbol_indices   = {0};
+  DAR_DArray asterisk_indices = {0};
+  TRY(DAR_create(&symbol_indices, sizeof(Index)));
+  TRY(DAR_create(&asterisk_indices, sizeof(Index)));
+
+  TRY(get_symbols(schematic, &symbol_indices));
+
+  for(const Index * idx = DAR_first(&symbol_indices); idx != DAR_end(&symbol_indices); idx++) {
+    if(get_by_index(schematic, *idx) == '*') TRY(DAR_push_back(&asterisk_indices, idx));
+  }
+
+  LOG_STAT(STAT_OK, "found %zu asterisks", asterisk_indices.size);
+
+  DAR_DArray numbers = {0};
+  TRY(DAR_create(&numbers, sizeof(IndexedNumber)));
+  for(Index * idx_p = DAR_first(&asterisk_indices); idx_p != DAR_end(&asterisk_indices); idx_p++) {
+    TRY(get_adjacent_numbers(schematic, *idx_p, &numbers));
+
+    if(numbers.size == 2) {
+      // this is a gear! :)
+      const int a     = ((IndexedNumber *)DAR_first(&numbers))->number;
+      const int b     = ((IndexedNumber *)DAR_last(&numbers))->number;
+      const int ratio = a * b;
+      TRY(DAR_push_back(ratios, &ratio));
+    }
+
+    TRY(DAR_clear(&numbers));
+  }
+
+  TRY(DAR_destroy(&numbers));
+  TRY(DAR_destroy(&symbol_indices));
+  TRY(DAR_destroy(&asterisk_indices));
 
   return OK;
 }

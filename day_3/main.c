@@ -62,13 +62,20 @@ int main(void) {
   TRY(get_numbers_from_schematic(DAR_to_span(&schematic_arr), &numbers));
 
   int sum_of_numbers = 0;
-  for(int * p = DAR_first(&numbers); p != DAR_end(&numbers); p++) { 
-    sum_of_numbers += *p; 
-  }
+  for(int * p = DAR_first(&numbers); p != DAR_end(&numbers); p++) { sum_of_numbers += *p; }
+
+  DAR_DArray ratios = {0};
+  TRY(DAR_create(&ratios, sizeof(int)));
+
+  TRY(get_gear_ratios_from_schematic(DAR_to_span(&schematic_arr), &ratios));
+
+  int sum_of_ratios = 0;
+  for(int * p = DAR_first(&ratios); p != DAR_end(&ratios); p++) { sum_of_ratios += *p; }
 
   TRY(destroy_lines(&lines));
+  TRY(DAR_destroy(&ratios));
   TRY(DAR_destroy(&numbers));
   TRY(DAR_destroy(&schematic_arr));
 
-  return LOG_STAT(STAT_OK, "sum_of_numbers: %d", sum_of_numbers);
+  return LOG_STAT(STAT_OK, "sum_of_numbers: %d, sum_of_ratios: %d", sum_of_numbers, sum_of_ratios);
 }

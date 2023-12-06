@@ -32,9 +32,9 @@ static Result tst_get_numbers_from_schematic(void) {
 
     EXPECT_OK(&r, get_numbers_from_schematic(DAR_to_span(&schematic_arr), &numbers));
     EXPECT_EQ(&r, 3, numbers.size);
-    EXPECT_EQ(&r, 123, *(int*)DAR_get(&numbers, 0));
-    EXPECT_EQ(&r, 12, *(int*)DAR_get(&numbers, 1));
-    EXPECT_EQ(&r, 8, *(int*)DAR_get(&numbers, 2));
+    EXPECT_EQ(&r, 123, *(int *)DAR_get(&numbers, 0));
+    EXPECT_EQ(&r, 12, *(int *)DAR_get(&numbers, 1));
+    EXPECT_EQ(&r, 8, *(int *)DAR_get(&numbers, 2));
 
     EXPECT_OK(&r, DAR_destroy(&numbers));
     EXPECT_OK(&r, DAR_destroy(&schematic_arr));
@@ -84,6 +84,76 @@ static Result tst_get_numbers_from_schematic(void) {
   return r;
 }
 
+static Result tst_get_gear_ratios_from_schematic(void) {
+  Result r = PASS;
+
+  {
+    DAR_DArray schematic_arr = {0};
+    EXPECT_OK(&r, DAR_create(&schematic_arr, sizeof(SPN_Span)));
+
+    {
+      SPN_Span lines[] = {
+          SPN_from_cstr("123...454."),
+          SPN_from_cstr("...*12*..."),
+          SPN_from_cstr("....8....."),
+      };
+
+      for(size_t i = 0; i < sizeof(lines) / sizeof(lines[0]); i++) {
+        SPN_Span * line = &lines[i];
+        EXPECT_OK(&r, DAR_push_back(&schematic_arr, line));
+      }
+    }
+
+    DAR_DArray ratios = {0};
+    EXPECT_OK(&r, DAR_create(&ratios, sizeof(int)));
+
+    EXPECT_OK(&r, get_gear_ratios_from_schematic(DAR_to_span(&schematic_arr), &ratios));
+    EXPECT_EQ(&r, 1, ratios.size);
+    EXPECT_EQ(&r, 12 * 454, *(int *)DAR_get(&ratios, 0));
+
+    EXPECT_OK(&r, DAR_destroy(&ratios));
+    EXPECT_OK(&r, DAR_destroy(&schematic_arr));
+  }
+
+  {
+    DAR_DArray schematic_arr = {0};
+    EXPECT_OK(&r, DAR_create(&schematic_arr, sizeof(SPN_Span)));
+
+    {
+      SPN_Span lines[] = {
+          SPN_from_cstr("467..114.."),
+          SPN_from_cstr("...*......"),
+          SPN_from_cstr("..35..633."),
+          SPN_from_cstr("......#..."),
+          SPN_from_cstr("617*......"),
+          SPN_from_cstr(".....+.58."),
+          SPN_from_cstr("..592....."),
+          SPN_from_cstr("......755."),
+          SPN_from_cstr("...$.*...."),
+          SPN_from_cstr(".664.598.."),
+      };
+
+      for(size_t i = 0; i < sizeof(lines) / sizeof(lines[0]); i++) {
+        SPN_Span * line = &lines[i];
+        EXPECT_OK(&r, DAR_push_back(&schematic_arr, line));
+      }
+    }
+
+    DAR_DArray ratios = {0};
+    EXPECT_OK(&r, DAR_create(&ratios, sizeof(int)));
+
+    EXPECT_OK(&r, get_gear_ratios_from_schematic(DAR_to_span(&schematic_arr), &ratios));
+    EXPECT_EQ(&r, 2, ratios.size);
+    EXPECT_EQ(&r, 16345, *(int *)DAR_get(&ratios, 0));
+    EXPECT_EQ(&r, 451490, *(int *)DAR_get(&ratios, 1));
+
+    EXPECT_OK(&r, DAR_destroy(&ratios));
+    EXPECT_OK(&r, DAR_destroy(&schematic_arr));
+  }
+
+  return r;
+}
+
 static Result tst_fixture(void * env) {
   Result r = PASS;
 
@@ -95,6 +165,7 @@ static Result tst_fixture(void * env) {
 int main(void) {
   Test tests[] = {
       tst_get_numbers_from_schematic,
+      tst_get_gear_ratios_from_schematic,
   };
 
   TestWithFixture tests_with_fixture[] = {
