@@ -42,19 +42,23 @@ static STAT_Val destroy_lines(DAR_DArray * lines) {
 }
 
 int main(void) {
-
   DAR_DArray lines = {0};
   TRY(DAR_create(&lines, sizeof(DAR_DArray)));
 
   TRY(read_lines_from_file("input.txt", &lines));
 
-  Almanac almanac         = {0};
-  size_t  lowest_location = 0;
+  Almanac almanac                   = {0};
+  size_t  lowest_location_for_part1 = 0;
+  size_t  lowest_location_for_part2 = 0;
   TRY(parse_almanac(&lines, &almanac));
-  TRY(find_lowest_location_number(&almanac, &lowest_location));
+  TRY(find_lowest_location_number_for_part1(&almanac, &lowest_location_for_part1));
+  TRY(find_lowest_location_number_for_part2(&almanac, &lowest_location_for_part2));
 
   TRY(destroy_almanac(&almanac));
   TRY(destroy_lines(&lines));
 
-  return LOG_STAT(STAT_OK, "lowest_location: %zu", lowest_location);
+  return LOG_STAT(STAT_OK,
+                  "lowest_location_for_part1: %zu, lowest_location_for_part_2: %zu",
+                  lowest_location_for_part1,
+                  lowest_location_for_part2);
 }

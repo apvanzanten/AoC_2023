@@ -43,6 +43,7 @@ typedef struct Almanac {
 
 STAT_Val parse_almanac(const DAR_DArray * lines, Almanac * out);
 STAT_Val destroy_almanac(Almanac * almanac);
-STAT_Val find_lowest_location_number(const Almanac * almanac, size_t * out);
+STAT_Val find_lowest_location_number_for_part1(const Almanac * almanac, size_t * out);
+STAT_Val find_lowest_location_number_for_part2(const Almanac * almanac, size_t * out);
 
 #endif

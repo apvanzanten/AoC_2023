@@ -76,7 +76,7 @@ static Result tst_parse_almanac_basic(void) {
   return r;
 }
 
-static Result tst_find_lowest_location_example(void) {
+static Result tst_find_lowest_location_part1_example(void) {
   Result r = PASS;
 
   const char * raw_lines[] = {
@@ -127,8 +127,72 @@ static Result tst_find_lowest_location_example(void) {
   EXPECT_OK(&r, parse_almanac(&lines, &almanac));
 
   size_t lowest_location = 0;
-  EXPECT_OK(&r, find_lowest_location_number(&almanac, &lowest_location));
+  EXPECT_OK(&r, find_lowest_location_number_for_part1(&almanac, &lowest_location));
   EXPECT_EQ(&r, 35, lowest_location);
+
+  if(HAS_FAILED(&r)) printf("lowest_location: %zu\n", lowest_location);
+
+  EXPECT_OK(&r, destroy_almanac(&almanac));
+
+  for(DAR_DArray * line = DAR_first(&lines); line != DAR_end(&lines); line++) { EXPECT_OK(&r, DAR_destroy(line)); }
+  EXPECT_OK(&r, DAR_destroy(&lines));
+
+  return r;
+}
+
+static Result tst_find_lowest_location_part2_example(void) {
+  Result r = PASS;
+
+  const char * raw_lines[] = {
+      "seeds: 79 14 55 13\n",
+      "\n",
+      "seed-to-soil map:\n",
+      "50 98 2\n",
+      "52 50 48\n",
+      "\n",
+      "soil-to-fertilizer map:\n",
+      "0 15 37\n",
+      "37 52 2\n",
+      "39 0 15\n",
+      "\n",
+      "fertilizer-to-water map:\n",
+      "49 53 8\n",
+      "0 11 42\n",
+      "42 0 7\n",
+      "57 7 4\n",
+      "\n",
+      "water-to-light map:\n",
+      "88 18 7\n",
+      "18 25 70\n",
+      "\n",
+      "light-to-temperature map:\n",
+      "45 77 23\n",
+      "81 45 19\n",
+      "68 64 13\n",
+      "\n",
+      "temperature-to-humidity map:\n",
+      "0 69 1\n",
+      "1 0 69\n",
+      "\n",
+      "humidity-to-location map:\n",
+      "60 56 37\n",
+      "56 93 4\n",
+  };
+
+  DAR_DArray lines = {0};
+  EXPECT_OK(&r, DAR_create(&lines, sizeof(DAR_DArray)));
+  for(size_t i = 0; i < sizeof(raw_lines) / sizeof(raw_lines[0]); i++) {
+    DAR_DArray line = {0};
+    EXPECT_OK(&r, DAR_create_from_cstr(&line, raw_lines[i]));
+    EXPECT_OK(&r, DAR_push_back(&lines, &line));
+  }
+
+  Almanac almanac = {0};
+  EXPECT_OK(&r, parse_almanac(&lines, &almanac));
+
+  size_t lowest_location = 0;
+  EXPECT_OK(&r, find_lowest_location_number_for_part2(&almanac, &lowest_location));
+  EXPECT_EQ(&r, 46, lowest_location);
 
   if(HAS_FAILED(&r)) printf("lowest_location: %zu\n", lowest_location);
 
@@ -151,7 +215,8 @@ static Result tst_fixture(void * env) {
 int main(void) {
   Test tests[] = {
       tst_parse_almanac_basic,
-      tst_find_lowest_location_example,
+      tst_find_lowest_location_part1_example,
+      tst_find_lowest_location_part2_example,
   };
 
   TestWithFixture tests_with_fixture[] = {

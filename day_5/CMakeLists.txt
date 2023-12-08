@@ -43,6 +43,7 @@ add_link_options(${SANITIZERS})
 link_libraries(log)
 link_libraries(span)
 link_libraries(darray)
+link_libraries(list)
 
 add_library(lib lib.c)
 
