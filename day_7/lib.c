@@ -8,7 +8,7 @@
 #include <stdlib.h>
 
 static Card char_to_card(char c) {
-  if(c >= '2' && c <= '9') return (Card)(c - '2');
+  if(c >= '2' && c <= '9') return (Card)(c - '2' + TWO);
   switch(c) {
   case 'A': return ACE;
   case 'K': return KING;
@@ -53,7 +53,7 @@ static HandHistogram get_hand_histogram(Hand hand) {
   return hist;
 }
 
-HandType get_hand_type(Hand hand) {
+static HandType get_hand_type_part1(Hand hand) {
   const HandHistogram hist = get_hand_histogram(hand);
 
   size_t num_sets     = 0;
@@ -72,6 +72,35 @@ HandType get_hand_type(Hand hand) {
                     : ((max_set_size == 2) && (num_sets == 2)) ? TWO_PAIR
                     : (max_set_size == 2)                      ? ONE_PAIR
                                                                : HIGH_CARD);
+}
+
+static bool contains_jokers(Hand hand) {
+  for(size_t i = 0; i < HAND_SIZE; i++) {
+    if(hand.cards[i] == JOKER) return true;
+  }
+  return false;
+}
+
+HandType get_hand_type(Hand hand) {
+  if(contains_jokers(hand)) {
+    // try replacing jokers by all types of cards, and take the highest resulting hand type
+    HandType max_hand_type = HIGH_CARD;
+    for(Card replacement = TWO; replacement < NUM_CARD_TYPES; replacement++) {
+      if(replacement == JACK) continue; // no JACK anymore
+
+      Hand modified_hand = hand;
+      for(size_t i = 0; i < HAND_SIZE; i++) {
+        if(modified_hand.cards[i] == JOKER) modified_hand.cards[i] = replacement;
+      }
+
+      HandType type = get_hand_type_part1(modified_hand);
+      max_hand_type = (type > max_hand_type) ? type : max_hand_type;
+    }
+
+    return max_hand_type;
+  }
+
+  return get_hand_type_part1(hand);
 }
 
 int compare_hands(Hand a, Hand b) {
@@ -101,7 +130,7 @@ STAT_Val sort_hands_by_rank(SPN_MutSpan hands) {
   return OK;
 }
 
-STAT_Val parse_hands(const DAR_DArray * lines, DAR_DArray * hands) {
+STAT_Val parse_hands_part1(const DAR_DArray * lines, DAR_DArray * hands) {
   CHECK(lines != NULL);
   CHECK(DAR_is_initialized(lines));
   CHECK(!DAR_is_empty(lines));
@@ -114,6 +143,18 @@ STAT_Val parse_hands(const DAR_DArray * lines, DAR_DArray * hands) {
   for(const DAR_DArray * line = DAR_first(lines); line != DAR_end(lines); line++) {
     Hand hand = parse_hand(DAR_to_span(line));
     TRY(DAR_push_back(hands, &hand));
+  }
+
+  return OK;
+}
+
+STAT_Val parse_hands_part2(const DAR_DArray * lines, DAR_DArray * hands) {
+  TRY(parse_hands_part1(lines, hands));
+
+  for(Hand * hand = DAR_first(hands); hand != DAR_end(hands); hand++) {
+    for(size_t i = 0; i < HAND_SIZE; i++) {
+      if(hand->cards[i] == JACK) hand->cards[i] = JOKER;
+    }
   }
 
   return OK;

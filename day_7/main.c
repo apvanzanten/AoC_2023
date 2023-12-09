@@ -47,17 +47,26 @@ int main(void) {
 
   TRY(read_lines_from_file("input.txt", &lines));
 
-  size_t total_winnings = 0;
+  size_t total_winnings_part1 = 0;
+  size_t total_winnings_part2 = 0;
 
-  DAR_DArray hands = {0};
-  TRY(DAR_create(&hands, sizeof(Hand)));
+  DAR_DArray hands_part1 = {0};
+  DAR_DArray hands_part2 = {0};
+  TRY(DAR_create(&hands_part1, sizeof(Hand)));
+  TRY(DAR_create(&hands_part2, sizeof(Hand)));
 
-  TRY(parse_hands(&lines, &hands));
+  TRY(parse_hands_part1(&lines, &hands_part1));
+  TRY(parse_hands_part2(&lines, &hands_part2));
 
-  TRY(get_total_winnings(DAR_to_mut_span(&hands), &total_winnings));
+  TRY(get_total_winnings(DAR_to_mut_span(&hands_part1), &total_winnings_part1));
+  TRY(get_total_winnings(DAR_to_mut_span(&hands_part2), &total_winnings_part2));
 
-  TRY(DAR_destroy(&hands));
+  TRY(DAR_destroy(&hands_part1));
+  TRY(DAR_destroy(&hands_part2));
   TRY(destroy_lines(&lines));
 
-  return LOG_STAT(STAT_OK, "total_winnings: %zu", total_winnings);
+  return LOG_STAT(STAT_OK,
+                  "total_winnings_part1: %zu, total_winnings_part2: %zu",
+                  total_winnings_part1,
+                  total_winnings_part2);
 }

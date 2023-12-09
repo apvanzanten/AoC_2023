@@ -7,7 +7,23 @@
 
 #include "common.h"
 
-typedef enum Card { TWO, THREE, FOUR, FIVE, SIX, SEVEN, EIGHT, NINE, TEN, JACK, QUEEN, KING, ACE, NUM_CARD_TYPES } Card;
+typedef enum Card {
+  JOKER,
+  TWO,
+  THREE,
+  FOUR,
+  FIVE,
+  SIX,
+  SEVEN,
+  EIGHT,
+  NINE,
+  TEN,
+  JACK,
+  QUEEN,
+  KING,
+  ACE,
+  NUM_CARD_TYPES
+} Card;
 
 #define HAND_SIZE 5
 
@@ -36,7 +52,9 @@ static inline bool hand_equals(Hand a, Hand b) { return compare_hands(a, b) == 0
 
 STAT_Val sort_hands_by_rank(SPN_MutSpan hands);
 
-STAT_Val parse_hands(const DAR_DArray * lines, DAR_DArray * hands);
+STAT_Val parse_hands_part1(const DAR_DArray * lines, DAR_DArray * hands);
+
+STAT_Val parse_hands_part2(const DAR_DArray * lines, DAR_DArray * hands);
 
 STAT_Val get_total_winnings(SPN_MutSpan hands, size_t * out);
 
