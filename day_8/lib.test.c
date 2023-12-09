@@ -166,7 +166,7 @@ static Result tst_parse_input_sequence(void) {
   return r;
 }
 
-static Result tst_get_number_of_steps_for_input_on_state_machine_example_1(void) {
+static Result tst_get_number_of_steps_for_input_on_state_machine_part1_example_1(void) {
   Result r = PASS;
 
   const char * lines_raw[] = {
@@ -195,7 +195,8 @@ static Result tst_get_number_of_steps_for_input_on_state_machine_example_1(void)
 
   size_t number_of_steps = 0;
 
-  EXPECT_OK(&r, get_number_of_steps_for_input_on_state_machine(&machine, DAR_to_span(&input_seq), &number_of_steps));
+  EXPECT_OK(&r,
+            get_number_of_steps_for_input_on_state_machine_part1(&machine, DAR_to_span(&input_seq), &number_of_steps));
   EXPECT_EQ(&r, 2, number_of_steps);
 
   EXPECT_OK(&r, DAR_destroy(&input_seq));
@@ -205,7 +206,7 @@ static Result tst_get_number_of_steps_for_input_on_state_machine_example_1(void)
   return r;
 }
 
-static Result tst_get_number_of_steps_for_input_on_state_machine_example_2(void) {
+static Result tst_get_number_of_steps_for_input_on_state_machine_part1_example_2(void) {
   Result r = PASS;
 
   const char * lines_raw[] = {
@@ -230,7 +231,49 @@ static Result tst_get_number_of_steps_for_input_on_state_machine_example_2(void)
 
   size_t number_of_steps = 0;
 
-  EXPECT_OK(&r, get_number_of_steps_for_input_on_state_machine(&machine, DAR_to_span(&input_seq), &number_of_steps));
+  EXPECT_OK(&r,
+            get_number_of_steps_for_input_on_state_machine_part1(&machine, DAR_to_span(&input_seq), &number_of_steps));
+  EXPECT_EQ(&r, 6, number_of_steps);
+
+  EXPECT_OK(&r, DAR_destroy(&input_seq));
+  EXPECT_OK(&r, destroy_state_machine(&machine));
+  EXPECT_OK(&r, destroy_lines_arr(&lines));
+
+  return r;
+}
+
+static Result tst_get_number_of_steps_for_input_on_state_machine_part2_example(void) {
+  Result r = PASS;
+
+  const char * lines_raw[] = {
+      "LR\n",
+      "\n",
+      "11A = (11B, XXX)\n",
+      "11B = (XXX, 11Z)\n",
+      "11Z = (11B, XXX)\n",
+      "22A = (22B, XXX)\n",
+      "22B = (22C, 22C)\n",
+      "22C = (22Z, 22Z)\n",
+      "22Z = (22B, 22B)\n",
+      "XXX = (XXX, XXX)\n",
+  };
+
+  DAR_DArray lines = {0};
+  EXPECT_OK(&r, create_lines_arr(lines_raw, (sizeof(lines_raw) / sizeof(lines_raw[0])), &lines));
+
+  DAR_DArray input_seq = {0};
+  EXPECT_OK(&r, DAR_create(&input_seq, sizeof(TransitionType)));
+
+  EXPECT_OK(&r, parse_input_sequence(DAR_to_span(DAR_first(&lines)), &input_seq));
+  EXPECT_EQ(&r, 2, input_seq.size);
+
+  StateMachine machine = {0};
+  EXPECT_OK(&r, parse_state_machine(SPN_subspan(DAR_to_span(&lines), 2, lines.size - 2), &machine));
+
+  size_t number_of_steps = 0;
+
+  EXPECT_OK(&r,
+            get_number_of_steps_for_input_on_state_machine_part2(&machine, DAR_to_span(&input_seq), &number_of_steps));
   EXPECT_EQ(&r, 6, number_of_steps);
 
   EXPECT_OK(&r, DAR_destroy(&input_seq));
@@ -253,8 +296,9 @@ int main(void) {
       tst_parse_state_machine_basic,
       tst_parse_state_machine_example,
       tst_parse_input_sequence,
-      tst_get_number_of_steps_for_input_on_state_machine_example_1,
-      tst_get_number_of_steps_for_input_on_state_machine_example_2,
+      tst_get_number_of_steps_for_input_on_state_machine_part1_example_1,
+      tst_get_number_of_steps_for_input_on_state_machine_part1_example_2,
+      tst_get_number_of_steps_for_input_on_state_machine_part2_example,
   };
 
   TestWithFixture tests_with_fixture[] = {

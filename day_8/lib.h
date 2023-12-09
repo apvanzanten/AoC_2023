@@ -27,8 +27,12 @@ STAT_Val destroy_state_machine(StateMachine * machine);
 
 STAT_Val parse_input_sequence(SPN_Span line, DAR_DArray * sequence);
 
-STAT_Val get_number_of_steps_for_input_on_state_machine(const StateMachine * machine,
-                                                        SPN_Span             sequence,
-                                                        size_t *             number_of_steps);
+STAT_Val get_number_of_steps_for_input_on_state_machine_part1(const StateMachine * machine,
+                                                              SPN_Span             sequence,
+                                                              size_t *             number_of_steps);
+
+STAT_Val get_number_of_steps_for_input_on_state_machine_part2(const StateMachine * machine,
+                                                              SPN_Span             sequence,
+                                                              size_t *             number_of_steps);
 
 #endif

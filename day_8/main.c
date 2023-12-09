@@ -54,12 +54,18 @@ int main(void) {
   StateMachine machine = {0};
   TRY(parse_state_machine(SPN_subspan(DAR_to_span(&lines), 2, lines.size - 2), &machine));
 
-  size_t number_of_steps = 0;
-  TRY(get_number_of_steps_for_input_on_state_machine(&machine, DAR_to_span(&input_seq), &number_of_steps));
+  size_t number_of_steps_part1 = 0;
+  TRY(get_number_of_steps_for_input_on_state_machine_part1(&machine, DAR_to_span(&input_seq), &number_of_steps_part1));
+
+  size_t number_of_steps_part2 = 0;
+  TRY(get_number_of_steps_for_input_on_state_machine_part2(&machine, DAR_to_span(&input_seq), &number_of_steps_part2));
 
   TRY(destroy_state_machine(&machine));
   TRY(DAR_destroy(&input_seq));
   TRY(destroy_lines(&lines));
 
-  return LOG_STAT(STAT_OK, "number_of_steps: %zu", number_of_steps);
+  return LOG_STAT(STAT_OK,
+                  "number_of_steps_part1: %zu, number_of_steps_part2: %zu",
+                  number_of_steps_part1,
+                  number_of_steps_part2);
 }
