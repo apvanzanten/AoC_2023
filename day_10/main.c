@@ -48,15 +48,22 @@ int main(void) {
   TRY(read_lines_from_file("input.txt", &lines));
 
   size_t   max_dist     = 0;
+  size_t   num_enclosed = 0;
   Position max_dist_pos = {0};
 
   PipeSketch sketch = {0};
   TRY(parse_sketch(&lines, &sketch));
   TRY(calculate_distances_from_start(&sketch));
   TRY(get_max_distance_from_start(&sketch, &max_dist, &max_dist_pos));
+  TRY(determine_enclosed_tiles(&sketch, &num_enclosed));
 
   TRY(destroy_sketch(&sketch));
   TRY(destroy_lines(&lines));
 
-  return LOG_STAT(STAT_OK, "max_dist: %zu, max_dist_pos: (%zu,%zu)", max_dist, max_dist_pos.x, max_dist_pos.y);
+  return LOG_STAT(STAT_OK,
+                  "max_dist: %zu, max_dist_pos: (%zu,%zu), num_enclosed: %zu",
+                  max_dist,
+                  max_dist_pos.x,
+                  max_dist_pos.y,
+                  num_enclosed);
 }

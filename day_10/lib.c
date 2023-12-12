@@ -17,6 +17,23 @@ static STAT_Val init_sketch(PipeSketch * sketch) {
   return OK;
 }
 
+static bool is_pipe(const Piece * piece) { return (piece->type != GROUND) && (piece->dist_from_start != SIZE_MAX); }
+
+static void print_pipe(const PipeSketch * sketch) {
+  Position pos = {0};
+  for(pos.y = 0; pos.y < sketch->height; pos.y++) {
+    for(pos.x = 0; pos.x < sketch->width; pos.x++) {
+      const Piece * piece = get_piece(sketch, pos);
+      if(is_pipe(piece)) {
+        printf("%c", piece_type_to_char(piece->type));
+      } else {
+        printf(" ");
+      }
+    }
+    putc('\n', stdout);
+  }
+}
+
 STAT_Val parse_sketch(const DAR_DArray * lines, PipeSketch * sketch) {
   CHECK(lines != NULL);
   CHECK(DAR_is_initialized(lines) && !DAR_is_empty(lines));
@@ -134,14 +151,6 @@ static STAT_Val set_distance_from_start(PipeSketch * sketch, Position pos) {
   return OK;
 }
 
-// static void print_sketch_distances(const PipeSketch * sketch) {
-//   Position pos = {0};
-//   for(pos.y = 0; pos.y < sketch->height; pos.y++) {
-//     for(pos.x = 0; pos.x < sketch->width; pos.x++) { printf("%.16zx ", get_piece(sketch, pos)->dist_from_start); }
-//     putc('\n', stdout);
-//   }
-// }
-
 STAT_Val calculate_distances_from_start(PipeSketch * sketch) {
   CHECK(sketch != NULL);
   CHECK(DAR_is_initialized(&sketch->pieces));
@@ -149,7 +158,8 @@ STAT_Val calculate_distances_from_start(PipeSketch * sketch) {
   get_piece(sketch, sketch->start_pos)->dist_from_start = 0;
 
   // fill in all distances repeatedly until we reach a fixed point (i.e. the values stop changing)
-  // TODO spiral out from the start position, as that is much more efficient
+  // THIS IS VERY INEFFICIENT, I started with the idea that it would be more efficient than recursion if done properly,
+  // but I never got around to doing it properly. It works though.
   size_t num_iterations = 0;
   bool   is_fixed_point = false;
   do {
@@ -174,6 +184,8 @@ STAT_Val calculate_distances_from_start(PipeSketch * sketch) {
   } while(!is_fixed_point);
 
   LOG_STAT(STAT_OK, "took %zu iterations to get to fixed point", num_iterations);
+
+  print_pipe(sketch);
 
   return OK;
 }
@@ -208,7 +220,7 @@ static STAT_Val grow_region_of_ground(PipeSketch * sketch, Position pos, size_t 
   CHECK_WITH_MSG(pos.y < sketch->height, "pos.y < sketch->height: (%zu < %zu)", pos.y, sketch->height);
 
   Piece * piece = get_piece(sketch, pos);
-  if(piece->type != GROUND || piece->region_id != 0) return OK;
+  if(is_pipe(piece) || piece->region_id != 0) return OK;
 
   const Position adjacents[] = {
       {.x = ((pos.x == 0) ? 0 : (pos.x - 1)), .y = pos.y},      // WEST
@@ -235,9 +247,9 @@ static void print_sketch(const PipeSketch * sketch) {
     for(pos.x = 0; pos.x < sketch->width; pos.x++) {
       const Piece * piece = get_piece(sketch, pos);
       if(piece->type == GROUND) {
-        printf("%4.4zu ", piece->region_id);
+        printf("%c", (piece->region_id == 0) ? 'O' : 'I');
       } else {
-        printf("  %c  ", piece_type_to_char(piece->type));
+        printf("%c", (is_pipe(piece) ? piece_type_to_char(piece->type) : '_'));
       }
     }
     putc('\n', stdout);
@@ -249,34 +261,59 @@ STAT_Val determine_enclosed_tiles(PipeSketch * sketch, size_t * num_enclosed) {
   CHECK(DAR_is_initialized(&sketch->pieces));
   CHECK(num_enclosed != NULL);
 
-  // TODO find way to exclude outside-of-pipe-inclusion better
-  // 1. grow all ground regions as potentially enclosed, and collect their size by region id
-  // 2. go along edges of field, eliminating all seen regions from the list
-  // 3. sum up remaining region sizes
-
   const size_t zero = 0;
 
   DAR_DArray regions = {0}; // contains size_t, being the size of the region
   TRY(DAR_create(&regions, sizeof(size_t)));
   TRY(DAR_push_back(&regions, &zero)); // start at size 1, so region id 0 is skipped
 
-  size_t region_id = 1;
+  size_t region_id           = 1;
+  bool   is_entry_from_right = false;
+  bool   is_inside_pipe      = false;
+  bool   is_enclosed         = false;
 
-  bool     is_inside = false;
-  Position pos       = {0};
+  Position pos = {0};
+
   for(pos.y = 0; pos.y < sketch->height; pos.y++) {
-    is_inside = false;
+    is_enclosed = false;
     for(pos.x = 0; pos.x < sketch->width; pos.x++) {
+      // moving west to east
       Piece * piece = get_piece(sketch, pos);
-      if((piece->type == GROUND) && (piece->region_id == 0) && is_inside) {
-        TRY(DAR_resize_zeroed(&regions, regions.size + 1));
-        TRY(grow_region_of_ground(sketch, pos, region_id, DAR_last(&regions)));
-        LOG_STAT(STAT_OK, "growing from (%zu,%zu) : %zu", pos.x, pos.y, region_id);
-        region_id++;
-      } else if(piece->dist_from_start != SIZE_MAX) {
-        // part of pipe
-        // we're moving west to east
-        if(!is_connected_to_east(piece->type)) is_inside = !is_inside;
+      if(is_pipe(piece)) {
+        if(is_inside_pipe) {
+          if(!is_connected_to_east(piece->type)) {
+            // last piece of the pipe, as it is not connected to the east, and we are moving east
+            is_inside_pipe = false;
+            if((is_connected_to_north(piece->type) && is_entry_from_right) ||
+               (is_connected_to_south(piece->type) && !is_entry_from_right)) {
+              // we have crossed the pipe!
+              is_enclosed = !is_enclosed;
+            }
+          }
+        } else {
+          // not yet inside pipe
+          if(piece->type == VERTICAL) {
+            // also last piece of the pipe!
+            is_inside_pipe = false; // should already be false, but oh well
+            is_enclosed    = !is_enclosed;
+          } else {
+            // either a BEND_SOUTH_TO_EAST or BEND_NORTH_TO_EAST or ANIMAL_START
+            // as we are moving east, south is right
+            is_entry_from_right =
+                (piece->type == BEND_SOUTH_TO_EAST ||
+                 (piece->type == ANIMAL_START &&
+                  ((pos.y == (sketch->height - 1)) || is_pipe(get_piece(sketch, ((Position){pos.x, pos.y + 1}))))));
+            is_inside_pipe = true;
+          }
+        }
+      } else {
+        // not a pipe piece
+        if((piece->region_id == 0) && is_enclosed) {
+          // a ground piece, and we're enclosed! grow the region :)
+          TRY(DAR_resize_zeroed(&regions, regions.size + 1));
+          TRY(grow_region_of_ground(sketch, pos, region_id, DAR_last(&regions)));
+          region_id++;
+        }
       }
     }
   }
@@ -284,23 +321,58 @@ STAT_Val determine_enclosed_tiles(PipeSketch * sketch, size_t * num_enclosed) {
   print_sketch(sketch);
 
   for(pos.x = 0; pos.x < sketch->width; pos.x++) {
-    is_inside = false;
     for(pos.y = 0; pos.y < sketch->height; pos.y++) {
+      is_enclosed = false;
+      // moving north to south
       Piece * piece = get_piece(sketch, pos);
-      if((piece->type == GROUND) && (piece->region_id == 0) && is_inside) {
-        TRY(DAR_resize_zeroed(&regions, regions.size + 1));
-        TRY(grow_region_of_ground(sketch, pos, region_id, DAR_last(&regions)));
-        LOG_STAT(STAT_OK, "growing from (%zu,%zu) : %zu", pos.x, pos.y, region_id);
-        region_id++;
-      } else if(piece->dist_from_start != SIZE_MAX) {
-        // part of pipe
-        // we're moving north to south
-        if(!is_connected_to_south(piece->type)) is_inside = !is_inside;
+      if(is_pipe(piece)) {
+        if(is_inside_pipe) {
+          if(!is_connected_to_south(piece->type)) {
+            // last piece of the pipe, as it is not connected to the south, and we are moving south
+            is_inside_pipe = false;
+            if((is_connected_to_east(piece->type) && is_entry_from_right) ||
+               (is_connected_to_west(piece->type) && !is_entry_from_right)) {
+              // we have crossed the pipe!
+              is_enclosed = !is_enclosed;
+            }
+          }
+        } else {
+          // not yet inside pipe
+          if(piece->type == HORIZONTAL) {
+            // also last piece of the pipe!
+            is_inside_pipe = false; // should already be false, but oh well
+            is_enclosed    = !is_enclosed;
+          } else {
+            // either a BEND_SOUTH_TO_WEST or BEND_SOUTH_TO_EAST or ANIMAL_START
+            // as we are moving south, west is right
+            is_entry_from_right = (piece->type == BEND_SOUTH_TO_WEST ||
+                                   (piece->type == ANIMAL_START &&
+                                    ((pos.x == 0) || is_pipe(get_piece(sketch, ((Position){pos.x - 1, pos.y}))))));
+            is_inside_pipe      = true;
+          }
+        }
+      } else {
+        // not a pipe piece
+        if((piece->region_id == 0) && is_enclosed) {
+          // a ground piece, and we're enclosed! grow the region :)
+          TRY(DAR_resize_zeroed(&regions, regions.size + 1));
+          TRY(grow_region_of_ground(sketch, pos, region_id, DAR_last(&regions)));
+          region_id++;
+        }
       }
     }
   }
 
   print_sketch(sketch);
+
+  *num_enclosed = 0;
+
+  for(pos.y = 0; pos.y < sketch->height; pos.y++) {
+    for(pos.x = 0; pos.x < sketch->width; pos.x++) {
+      const Piece * piece = get_piece(sketch, pos);
+      if(piece->region_id != 0) (*num_enclosed)++;
+    }
+  }
 
   TRY(DAR_destroy(&regions));
 

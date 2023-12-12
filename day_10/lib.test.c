@@ -249,6 +249,38 @@ static Result tst_determine_enclosed_tiles_example_2(void) {
   return r;
 }
 
+static Result tst_determine_enclosed_tiles_example_3(void) {
+  Result r = PASS;
+
+  const char * lines_raw[] = {
+      ".F----7F7F7F7F-7....\n",
+      ".|F--7||||||||FJ....\n",
+      ".||.FJ||||||||L7....\n",
+      "FJL7L7LJLJ||LJ.L-7..\n",
+      "L--J.L7...LJS7F-7L7.\n",
+      "....F-J..F7FJ|L7L7L7\n",
+      "....L7.F7||L7|.L7L7|\n",
+      ".....|FJLJ|FJ|F7|.LJ\n",
+      "....FJL-7.||.||||...\n",
+      "....L---J.LJ.LJLJ...\n",
+  };
+  DAR_DArray lines = {0};
+  EXPECT_OK(&r, create_lines(lines_raw, (sizeof(lines_raw) / sizeof(lines_raw[0])), &lines));
+
+  PipeSketch sketch = {0};
+  EXPECT_OK(&r, parse_sketch(&lines, &sketch));
+
+  EXPECT_OK(&r, calculate_distances_from_start(&sketch));
+
+  size_t num_enclosed_tiles = 0;
+  EXPECT_OK(&r, determine_enclosed_tiles(&sketch, &num_enclosed_tiles));
+  EXPECT_EQ(&r, 8, num_enclosed_tiles);
+
+  EXPECT_OK(&r, destroy_lines(&lines));
+  EXPECT_OK(&r, destroy_sketch(&sketch));
+
+  return r;
+}
 static Result tst_fixture(void * env) {
   Result r = PASS;
 
@@ -265,6 +297,7 @@ int main(void) {
       tst_get_max_distance_from_start_example_2,
       tst_determine_enclosed_tiles_example_1,
       tst_determine_enclosed_tiles_example_2,
+      tst_determine_enclosed_tiles_example_3,
   };
 
   TestWithFixture tests_with_fixture[] = {
