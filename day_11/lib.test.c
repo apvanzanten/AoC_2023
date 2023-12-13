@@ -44,32 +44,21 @@ static Result tst_parse_universe_example(void) {
       ".......#..\n",
       "#...#.....\n",
   };
-  const Space spaces_raw[] = {
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('#')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('#')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('#')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('#')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('#')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('#')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('#')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('#')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('#')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
+  const SpaceType emp          = EMPTY;
+  const SpaceType gal          = GALAXY;
+  const Space     spaces_raw[] = {
+      // clang-format off
+      {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {gal, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, 
+      {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, {gal, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, 
+      {gal, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, 
+      {emp, 1, 2}, {emp, 1, 2}, {emp, 2, 2}, {emp, 1, 2}, {emp, 1, 2}, {emp, 2, 2}, {emp, 1, 2}, {emp, 1, 2}, {emp, 2, 2}, {emp, 1, 2},
+      {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {gal, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, 
+      {emp, 1, 1}, {gal, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, 
+      {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {gal, 1, 1}, 
+      {emp, 1, 2}, {emp, 1, 2}, {emp, 2, 2}, {emp, 1, 2}, {emp, 1, 2}, {emp, 2, 2}, {emp, 1, 2}, {emp, 1, 2}, {emp, 2, 2}, {emp, 1, 2},
+      {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, {gal, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, 
+      {gal, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, {gal, 1, 1}, {emp, 2, 1}, {emp, 1, 1}, {emp, 1, 1}, {emp, 2, 1}, {emp, 1, 1},
+      // clang-format on
   };
   DAR_DArray lines = {0};
   EXPECT_OK(&r, create_lines(lines_raw, (sizeof(lines_raw) / sizeof(lines_raw[0])), &lines));
@@ -91,99 +80,22 @@ static Result tst_parse_universe_example(void) {
   return r;
 }
 
-static Result tst_expand_universe_example(void) {
-  Result r = PASS;
-
-  const char * lines_raw[] = {
-      "...#......\n",
-      ".......#..\n",
-      "#.........\n",
-      "..........\n",
-      "......#...\n",
-      ".#........\n",
-      ".........#\n",
-      "..........\n",
-      ".......#..\n",
-      "#...#.....\n",
-  };
-  const Space expanded_spaces_raw[] = {
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('#')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('#')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('#')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('#')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('#')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('#')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('#')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('#')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('#')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-      {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')}, {char_to_space_type('.')},
-  };
-  DAR_DArray lines = {0};
-  EXPECT_OK(&r, create_lines(lines_raw, (sizeof(lines_raw) / sizeof(lines_raw[0])), &lines));
-
-  Universe universe = {0};
-
-  EXPECT_OK(&r, parse_universe(&lines, &universe));
-  EXPECT_OK(&r, expand_universe(&universe));
-
-  EXPECT_EQ(&r, 13, universe.width);
-  EXPECT_EQ(&r, 12, universe.height);
-  EXPECT_EQ(&r, 13 * 12, universe.spaces.size);
-
-  EXPECT_TRUE(&r, memcmp(expanded_spaces_raw, universe.spaces.data, universe.spaces.size) == 0);
-
-  if(HAS_FAILED(&r)) print_universe(&universe);
-
-  EXPECT_OK(&r, destroy_lines(&lines));
-  EXPECT_OK(&r, destroy_universe(&universe));
-
-  return r;
-}
-
 static Result tst_calculate_galaxy_distances_example(void) {
   Result r = PASS;
 
   const char * lines_raw[] = {
-      "...#......\n",
-      ".......#..\n",
-      "#.........\n",
+      "...#......\n", // 3,0
+      ".......#..\n", // 7,1
+      "#.........\n", // 0,2
       "..........\n",
-      "......#...\n",
-      ".#........\n",
-      ".........#\n",
+      "......#...\n", // 6,4
+      ".#........\n", // 1,5
+      ".........#\n", // 9,6
       "..........\n",
-      ".......#..\n",
-      "#...#.....\n",
+      ".......#..\n", // 7,8
+      "#...#.....\n", // 0,9 ; 4,9
   };
+  const Position expect_galaxy_positions[] = {{3, 0}, {7, 1}, {0, 2}, {6, 4}, {1, 5}, {9, 6}, {7, 8}, {0, 9}, {4, 9}};
 
   DAR_DArray lines = {0};
   EXPECT_OK(&r, create_lines(lines_raw, (sizeof(lines_raw) / sizeof(lines_raw[0])), &lines));
@@ -191,7 +103,6 @@ static Result tst_calculate_galaxy_distances_example(void) {
   Universe universe = {0};
 
   EXPECT_OK(&r, parse_universe(&lines, &universe));
-  EXPECT_OK(&r, expand_universe(&universe));
 
   DAR_DArray galaxy_positions = {0};
   DAR_DArray distances        = {0};
@@ -202,24 +113,71 @@ static Result tst_calculate_galaxy_distances_example(void) {
   EXPECT_EQ(&r, 9, galaxy_positions.size);
   EXPECT_EQ(&r, 9 * 9, distances.size);
 
-  /* post expansion universe looks like:
-    ....#........ : 4,0
-    .........#... : 9,1
-    #............ : 0,2
-    .............
-    .............
-    ........#.... : 8,5
-    .#........... : 1,6
-    ............# : 12, 7
-    .............
-    .............
-    .........#... : 9, 10
-    #....#....... : 0, 11 ; 5, 11
-  */
-  const Position expect_galaxy_positions[] =
-      {{4, 0}, {9, 1}, {0, 2}, {8, 5}, {1, 6}, {12, 7}, {9, 10}, {0, 11}, {5, 11}};
+  EXPECT_TRUE(&r, memcmp(expect_galaxy_positions, galaxy_positions.data, galaxy_positions.size) == 0);
+
+  size_t sum_of_distances = 0;
+  EXPECT_OK(&r, sum_galaxy_distances(&universe, &distances, galaxy_positions.size, &sum_of_distances));
+
+  EXPECT_EQ(&r, sum_of_distances, 374);
+
+  if(HAS_FAILED(&r)) print_universe(&universe);
+
+  EXPECT_OK(&r, DAR_destroy(&galaxy_positions));
+  EXPECT_OK(&r, DAR_destroy(&distances));
+
+  EXPECT_OK(&r, destroy_lines(&lines));
+  EXPECT_OK(&r, destroy_universe(&universe));
+
+  return r;
+}
+
+static Result tst_calculate_galaxy_distances_example_part2(void) {
+  Result r = PASS;
+
+  const char * lines_raw[] = {
+      "...#......\n", // 3,0
+      ".......#..\n", // 7,1
+      "#.........\n", // 0,2
+      "..........\n",
+      "......#...\n", // 6,4
+      ".#........\n", // 1,5
+      ".........#\n", // 9,6
+      "..........\n",
+      ".......#..\n", // 7,8
+      "#...#.....\n", // 0,9 ; 4,9
+  };
+  const Position expect_galaxy_positions[] = {{3, 0}, {7, 1}, {0, 2}, {6, 4}, {1, 5}, {9, 6}, {7, 8}, {0, 9}, {4, 9}};
+
+  DAR_DArray lines = {0};
+  EXPECT_OK(&r, create_lines(lines_raw, (sizeof(lines_raw) / sizeof(lines_raw[0])), &lines));
+
+  Universe universe = {0};
+
+  EXPECT_OK(&r, parse_universe(&lines, &universe));
+
+  DAR_DArray galaxy_positions = {0};
+  DAR_DArray distances        = {0};
+  EXPECT_OK(&r, DAR_create(&galaxy_positions, sizeof(Position)));
+  EXPECT_OK(&r, DAR_create(&distances, sizeof(size_t)));
+
+  EXPECT_OK(&r, increase_space_density_for_gaps(&universe, 10));
+
+  EXPECT_OK(&r, calculate_galaxy_distances(&universe, &galaxy_positions, &distances));
 
   EXPECT_TRUE(&r, memcmp(expect_galaxy_positions, galaxy_positions.data, galaxy_positions.size) == 0);
+
+  size_t sum_of_distances = 0;
+  EXPECT_OK(&r, sum_galaxy_distances(&universe, &distances, galaxy_positions.size, &sum_of_distances));
+  EXPECT_EQ(&r, sum_of_distances, 1030);
+
+  EXPECT_OK(&r, increase_space_density_for_gaps(&universe, 100));
+  EXPECT_OK(&r, DAR_clear(&galaxy_positions));
+  EXPECT_OK(&r, DAR_clear(&distances));
+
+  EXPECT_OK(&r, calculate_galaxy_distances(&universe, &galaxy_positions, &distances));
+
+  EXPECT_OK(&r, sum_galaxy_distances(&universe, &distances, galaxy_positions.size, &sum_of_distances));
+  EXPECT_EQ(&r, sum_of_distances, 8410);
 
   if(HAS_FAILED(&r)) print_universe(&universe);
 
@@ -243,8 +201,8 @@ static Result tst_fixture(void * env) {
 int main(void) {
   Test tests[] = {
       tst_parse_universe_example,
-      tst_expand_universe_example,
       tst_calculate_galaxy_distances_example,
+      tst_calculate_galaxy_distances_example_part2,
   };
 
   TestWithFixture tests_with_fixture[] = {

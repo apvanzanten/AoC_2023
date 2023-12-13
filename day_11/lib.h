@@ -26,6 +26,8 @@ static inline SpaceType char_to_space_type(char c) {
 
 typedef struct Space {
   SpaceType type;
+  size_t    horizontal_density;
+  size_t    vertical_density;
 } Space;
 
 typedef struct Universe {
@@ -58,7 +60,7 @@ static inline const Space * get_space_const(const Universe * universe, Position 
 
 STAT_Val parse_universe(const DAR_DArray * lines, Universe * universe);
 
-STAT_Val expand_universe(Universe * universe);
+STAT_Val increase_space_density_for_gaps(Universe * universe, size_t new_density_of_gaps);
 
 STAT_Val destroy_universe(Universe * universe);
 
@@ -66,6 +68,11 @@ STAT_Val calculate_galaxy_distances(
     const Universe * universe,
     DAR_DArray *     galaxy_positions /* contains Positions */,
     DAR_DArray *     distances /* contains distances ordered [1-1,1-2,...,1-n,2-1,2-2,...,2-n,...]*/);
+
+STAT_Val sum_galaxy_distances(const Universe *   universe,
+                              const DAR_DArray * distances,
+                              size_t             num_galaxies,
+                              size_t *           sum);
 
 void print_universe(const Universe * universe);
 

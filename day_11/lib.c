@@ -6,6 +6,8 @@
 
 #include <stdio.h>
 
+static STAT_Val set_space_densities(Universe * universe);
+
 static STAT_Val init_universe(Universe * universe) {
   CHECK(universe != NULL);
 
@@ -40,6 +42,8 @@ STAT_Val parse_universe(const DAR_DArray * lines, Universe * universe) {
 
     universe->height++;
   }
+
+  TRY(set_space_densities(universe));
 
   return OK;
 }
@@ -87,7 +91,7 @@ static STAT_Val get_empty_columns(const Universe * universe, DAR_DArray * empty_
   return OK;
 }
 
-STAT_Val expand_universe(Universe * universe) {
+static STAT_Val set_space_densities(Universe * universe) {
   CHECK(universe != NULL);
 
   DAR_DArray empty_rows    = {0};
@@ -96,10 +100,6 @@ STAT_Val expand_universe(Universe * universe) {
   TRY(DAR_create(&empty_columns, sizeof(size_t)));
   TRY(get_empty_rows(universe, &empty_rows));
   TRY(get_empty_columns(universe, &empty_columns));
-
-  DAR_DArray new_spaces = {0};
-  TRY(DAR_create(&new_spaces, sizeof(Space)));
-  TRY(DAR_reserve(&new_spaces, universe->spaces.size)); // not quite enough, but a good start
 
   Position pos           = {0};
   size_t   empty_row_idx = 0;
@@ -115,23 +115,34 @@ STAT_Val expand_universe(Universe * universe) {
       for(pos.x = 0; pos.x < universe->width; pos.x++) {
         const bool is_empty_column = ((empty_column_idx < empty_columns.size) &&
                                       (*(size_t *)DAR_get(&empty_columns, empty_column_idx) == pos.x));
+        if(is_empty_column) empty_column_idx++;
 
-        TRY(DAR_push_back(&new_spaces, get_space(universe, pos)));
-        if(is_empty_column) {
-          TRY(DAR_push_back(&new_spaces, get_space(universe, pos)));
-          empty_column_idx++;
-        }
+        Space * space             = DAR_get(&universe->spaces, pos_to_idx(universe, pos));
+        space->horizontal_density = (is_empty_column ? 2 : 1);
+        space->vertical_density   = (is_empty_row ? 2 : 1);
       }
     }
   }
 
-  TRY(DAR_destroy(&universe->spaces));
-  universe->spaces = new_spaces;
-  universe->height += empty_rows.size;
-  universe->width += empty_columns.size;
-
   TRY(DAR_destroy(&empty_rows));
   TRY(DAR_destroy(&empty_columns));
+
+  return OK;
+}
+
+STAT_Val increase_space_density_for_gaps(Universe * universe, size_t new_density_of_gaps) {
+  CHECK(universe != NULL);
+  CHECK(DAR_is_initialized(&universe->spaces));
+  CHECK(universe->spaces.size == (universe->width * universe->height));
+
+  Position pos = {0};
+  for(pos.y = 0; pos.y < universe->height; pos.y++) {
+    for(pos.x = 0; pos.x < universe->width; pos.x++) {
+      Space * space = get_space(universe, pos);
+      if(space->horizontal_density != 1) space->horizontal_density = new_density_of_gaps;
+      if(space->vertical_density != 1) space->vertical_density = new_density_of_gaps;
+    }
+  }
 
   return OK;
 }
@@ -170,72 +181,57 @@ static STAT_Val get_galaxies(const Universe * universe, DAR_DArray * positions) 
   return OK;
 }
 
-static void print_distance_map(const Universe * universe, Position galaxy_pos, const DAR_DArray * distance_map) {
-  Position pos = {0};
-  for(pos.y = 0; pos.y < universe->height; pos.y++) {
-    for(pos.x = 0; pos.x < universe->width; pos.x++) {
-      if(is_positions_equal(pos, galaxy_pos)) {
-        printf("XX ");
-      } else {
-        const size_t * dist = DAR_get(distance_map, pos_to_idx(universe, pos));
-        if(*dist > 0xff) {
-          printf("__ ");
-        } else {
-          printf("%2.2zx ", *dist);
-        }
-      }
-    }
-    printf("\n");
-  }
-}
+// static void print_distance_map(const Universe * universe, Position galaxy_pos, const DAR_DArray * distance_map) {
+//   Position pos = {0};
+//   for(pos.y = 0; pos.y < universe->height; pos.y++) {
+//     for(pos.x = 0; pos.x < universe->width; pos.x++) {
+//       if(is_positions_equal(pos, galaxy_pos)) {
+//         printf("XX ");
+//       } else {
+//         const size_t * dist = DAR_get(distance_map, pos_to_idx(universe, pos));
+//         if(*dist > 0xff) {
+//           printf("__ ");
+//         } else {
+//           printf("%2.2zx ", *dist);
+//         }
+//       }
+//     }
+//     printf("\n");
+//   }
+// }
 
-static void update_distance(const Universe * universe,
-                            Position         orig_pos,
-                            Position         pos,
-                            DAR_DArray *     distance_map,
-                            size_t           distance) {
-  if(pos.x < universe->width && pos.y < universe->height) {
-    size_t * dist_in_map = DAR_get(distance_map, pos_to_idx(universe, pos));
-    if(distance < *dist_in_map) {
-      LOG_STAT(STAT_OK,
-               "from {%zu,%zu}, updating {%zu,%zu}: %zu -> %zu",
-               orig_pos.x,
-               orig_pos.y,
-               pos.x,
-               pos.y,
-               *dist_in_map,
-               distance);
-      *dist_in_map = distance;
-    }
-  }
-}
+typedef enum Direction { UP, DOWN, LEFT, RIGHT } Direction;
 
-static STAT_Val grow_distance_rec(const Universe * universe,
-                                  Position         pos,
-                                  DAR_DArray *     distance_map,
-                                  size_t           curr_distance) {
-  if(pos.x >= universe->width || pos.y >= universe->height) return OK;
+static STAT_Val cast_distance_line_on_map(const Universe * universe,
+                                          Position         origin_pos,
+                                          Direction        direction,
+                                          DAR_DArray *     distance_map) {
 
-  size_t * dist_in_map = DAR_get(distance_map, pos_to_idx(universe, pos));
-  if(*dist_in_map < curr_distance) return OK;
+  int delta_y = 0;
+  int delta_x = 0;
 
-  const Position adjacents[] = {
-      {.x = pos.x - 1, .y = pos.y},
-      {.x = pos.x, .y = pos.y - 1},
-      {.x = pos.x, .y = pos.y + 1},
-      {.x = pos.x + 1, .y = pos.y},
-  };
-
-  // LOG_STAT(STAT_OK, "updating positions around {%zu,%zu}", pos.x, pos.y);
-  for(size_t i = 0; i < sizeof(adjacents) / sizeof(adjacents[0]); i++) {
-    update_distance(universe, pos, adjacents[i], distance_map, curr_distance + 1);
+  switch(direction) {
+  case UP: delta_y = -1; break;
+  case DOWN: delta_y = 1; break;
+  case LEFT: delta_x = -1; break;
+  case RIGHT: delta_x = 1; break;
   }
 
-  for(size_t i = 0; i < sizeof(adjacents) / sizeof(adjacents[0]); i++) {
-    TRY(grow_distance_rec(universe, adjacents[i], distance_map, curr_distance + 1));
-  }
+  size_t dist = *(size_t *)DAR_get(distance_map, pos_to_idx(universe, origin_pos));
 
-  if(curr_distance < 4) print_distance_map(universe, pos, distance_map);
+  Position pos = {origin_pos.x + delta_x, origin_pos.y + delta_y};
+  while(pos.x < universe->width && pos.y < universe->height) {
+    // NOTE we depend on overflow to stop
+
+    const Space * space       = get_space(universe, pos);
+    size_t *      dist_in_map = DAR_get(distance_map, pos_to_idx(universe, pos));
+
+    dist += ((direction == UP) || (direction == DOWN)) ? space->vertical_density : space->horizontal_density;
+
+    if(dist < *dist_in_map) *dist_in_map = dist;
+
+    pos = (Position){pos.x + delta_x, pos.y + delta_y};
+  }
 
   return OK;
 }
@@ -250,8 +246,17 @@ static STAT_Val make_distance_map(const Universe * universe, Position galaxy_pos
 
   const size_t max = SIZE_MAX;
   TRY(DAR_resize_with_value(distance_map, universe->spaces.size, &max));
+  size_t * galaxy_dist = DAR_get(distance_map, pos_to_idx(universe, galaxy_pos));
+  *galaxy_dist         = 0; // set galaxy distance to 0
 
-  TRY(grow_distance_rec(universe, galaxy_pos, distance_map, 0));
+  TRY(cast_distance_line_on_map(universe, galaxy_pos, LEFT, distance_map));
+  TRY(cast_distance_line_on_map(universe, galaxy_pos, RIGHT, distance_map));
+
+  for(size_t x = 0; x < universe->width; x++) {
+    Position pos = {x, galaxy_pos.y};
+    TRY(cast_distance_line_on_map(universe, pos, UP, distance_map));
+    TRY(cast_distance_line_on_map(universe, pos, DOWN, distance_map));
+  }
 
   return OK;
 }
@@ -259,7 +264,7 @@ static STAT_Val make_distance_map(const Universe * universe, Position galaxy_pos
 STAT_Val calculate_galaxy_distances(
     const Universe * universe,
     DAR_DArray *     galaxy_positions /* contains Positions */,
-    DAR_DArray *     distances /* contains distances ordered [1-1,1-2,...,1-n,2-1,2-2,...,2-n,...]*/) {
+    DAR_DArray *     distances /* contains distances ordered [1-1,1-2,...,1-n,2-3,2-2,...,2-n,...]*/) {
   CHECK(universe != NULL);
   CHECK(DAR_is_initialized(&universe->spaces));
   CHECK(galaxy_positions != NULL);
@@ -278,16 +283,17 @@ STAT_Val calculate_galaxy_distances(
 
   for(size_t i = 0; i < num_galaxies; i++) {
     DAR_DArray distance_map = {0};
+    Position   galaxy_pos   = *(Position *)DAR_get(galaxy_positions, i);
     TRY(DAR_create(&distance_map, sizeof(size_t)));
-    TRY(make_distance_map(universe, *(Position *)DAR_get(galaxy_positions, i), &distance_map));
+    TRY(make_distance_map(universe, galaxy_pos, &distance_map));
     TRY(DAR_push_back(&distance_maps, &distance_map));
   }
 
   TRY(DAR_reserve(distances, galaxy_positions->size * galaxy_positions->size));
-  for(size_t i = 0; i < num_galaxies; i++) {
-    Position           pos_i    = *(Position *)DAR_get(galaxy_positions, i);
-    const DAR_DArray * dist_map = DAR_get(&distance_maps, pos_to_idx(universe, pos_i));
 
+  for(size_t i = 0; i < num_galaxies; i++) {
+    const DAR_DArray * dist_map = DAR_get(&distance_maps, i);
+    CHECK(dist_map->size == universe->spaces.size);
     for(size_t j = 0; j < num_galaxies; j++) {
       Position       pos_j = *(Position *)DAR_get(galaxy_positions, j);
       const size_t * dist  = DAR_get(dist_map, pos_to_idx(universe, pos_j));
@@ -296,11 +302,33 @@ STAT_Val calculate_galaxy_distances(
   }
 
   for(size_t i = 0; i < num_galaxies; i++) {
-    Position     pos_i    = *(Position *)DAR_get(galaxy_positions, i);
-    DAR_DArray * dist_map = DAR_get(&distance_maps, pos_to_idx(universe, pos_i));
+    DAR_DArray * dist_map = DAR_get(&distance_maps, i);
     TRY(DAR_destroy(dist_map));
   }
   TRY(DAR_destroy(&distance_maps));
+
+  return OK;
+}
+
+STAT_Val sum_galaxy_distances(const Universe *   universe,
+                              const DAR_DArray * distances,
+                              size_t             num_galaxies,
+                              size_t *           sum) {
+  CHECK(universe != NULL);
+  CHECK(DAR_is_initialized(&universe->spaces));
+  CHECK(!DAR_is_empty(&universe->spaces));
+  CHECK(distances != NULL);
+  CHECK(DAR_is_initialized(distances));
+  CHECK(!DAR_is_empty(distances));
+  CHECK(distances->element_size == sizeof(size_t));
+
+  *sum = 0;
+  for(size_t i = 0; i < num_galaxies; i++) {
+    for(size_t j = i; j < num_galaxies; j++) {
+      const size_t * dist = DAR_get(distances, j + (i * num_galaxies));
+      *sum += *dist;
+    }
+  }
 
   return OK;
 }
