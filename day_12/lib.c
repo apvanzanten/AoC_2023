@@ -2,22 +2,23 @@
 #include <cfac/span.h>
 
 #include <stdio.h>
+#include <time.h>
 
 #include "common.h"
 #include "lib.h"
 
-void print_binary(size_t n, size_t num_bits_to_print) {
+void print_binary(__uint128_t n, size_t num_bits_to_print) {
   putc('0', stdout);
   putc('b', stdout);
 
-  char s[64 + 1] = {0};
+  char s[128 + 1] = {0};
 
-  for(size_t bit_idx = 0; bit_idx < 64; bit_idx++) {
-    size_t mag = (63 - bit_idx);
-    s[bit_idx] = (n & ((size_t)1 << mag)) ? '1' : '0';
+  for(size_t bit_idx = 0; bit_idx < 128; bit_idx++) {
+    size_t mag = (127 - bit_idx);
+    s[bit_idx] = (n & (((__uint128_t)1) << mag)) ? '1' : '0';
   }
 
-  printf("%s", &s[(64 - num_bits_to_print)]);
+  printf("%s", &s[(128 - num_bits_to_print)]);
 }
 
 static STAT_Val parse_conditions(SPN_Span str, Record * record) {
@@ -45,7 +46,7 @@ static STAT_Val parse_conditions(SPN_Span str, Record * record) {
 
       num_conditions++;
     }
-    if(num_conditions > 63) return LOG_STAT(STAT_ERR_READ, "too many conditions!");
+    if(num_conditions > 127) return LOG_STAT(STAT_ERR_READ, "too many conditions!");
   }
 
   return OK;
@@ -112,6 +113,63 @@ STAT_Val parse_records(const DAR_DArray * lines, DAR_DArray * records /*contains
   return OK;
 }
 
+static STAT_Val expand_groups(DAR_DArray * groups) {
+  CHECK(groups != NULL);
+  CHECK(DAR_is_initialized(groups));
+  CHECK(groups->element_size == sizeof(size_t));
+  CHECK(!DAR_is_empty(groups));
+
+  const size_t initial_size = groups->size;
+  for(size_t repeat_idx = 0; repeat_idx < 4; repeat_idx++) {
+    for(size_t i = 0; i < initial_size; i++) {
+      const size_t v = *(size_t *)DAR_get(groups, i);
+      TRY(DAR_push_back(groups, &v));
+    }
+  }
+
+  return OK;
+}
+
+static STAT_Val expand_conditions(__uint128_t * operational_bits,
+                                  __uint128_t * damaged_bits,
+                                  __uint128_t * unknown_bits) {
+  const size_t num_bits = popcount(*operational_bits | *damaged_bits | *unknown_bits);
+
+  __uint128_t new_operational_bits = *operational_bits;
+  __uint128_t new_damaged_bits     = *damaged_bits;
+  __uint128_t new_unknown_bits     = *unknown_bits;
+
+  for(size_t repeat = 1; repeat <= 4; repeat++) {
+    size_t repeat_shift  = (num_bits + 1) * repeat;
+    new_operational_bits = new_operational_bits | (*operational_bits << repeat_shift);
+    new_damaged_bits     = new_damaged_bits | (*damaged_bits << repeat_shift);
+    new_unknown_bits     = new_unknown_bits | (*unknown_bits << repeat_shift);
+
+    size_t gap_shift = repeat_shift - 1;
+    new_unknown_bits |= (((__uint128_t)1) << gap_shift);
+  }
+
+  *operational_bits = new_operational_bits;
+  *damaged_bits     = new_damaged_bits;
+  *unknown_bits     = new_unknown_bits;
+
+  return OK;
+}
+
+STAT_Val expand_records_for_part2(DAR_DArray * records) {
+  CHECK(records != NULL);
+  CHECK(DAR_is_initialized(records));
+  CHECK(records->element_size == sizeof(Record));
+  CHECK(!DAR_is_empty(records));
+
+  for(Record * record = DAR_first(records); record != DAR_end(records); record++) {
+    TRY(expand_groups(&record->groups));
+    TRY(expand_conditions(&record->operational_bits, &record->damaged_bits, &record->unknown_bits));
+  }
+
+  return OK;
+}
+
 static STAT_Val destroy_record(Record * record) {
   CHECK(record != NULL);
 
@@ -130,17 +188,6 @@ STAT_Val destroy_records(DAR_DArray * records) {
   return OK;
 }
 
-static uint8_t popcount(size_t n) {
-  uint8_t c = 0;
-
-  while(n != 0) {
-    n >>= 1;
-    c++;
-  }
-
-  return c;
-}
-
 static STAT_Val print_groups(SPN_Span groups) {
   for(const size_t * group = SPN_first(groups); group != SPN_end(groups); group++) { printf("%zu,", *group); }
   return OK;
@@ -149,7 +196,7 @@ static STAT_Val print_groups(SPN_Span groups) {
 static void print_record_conditions_by_bits(size_t operational_bits, size_t damaged_bits, size_t unknown_bits) {
   size_t count = popcount(operational_bits | damaged_bits | unknown_bits);
   for(size_t i = 0; i < count; i++) {
-    size_t mask = (1 << ((count - i) - 1));
+    __uint128_t mask = (((__uint128_t)1) << ((count - i) - 1));
     if(operational_bits & mask) {
       putc('.', stdout);
     } else if(damaged_bits & mask) {
@@ -183,26 +230,28 @@ STAT_Val print_records(const DAR_DArray * records) {
   return OK;
 }
 
-size_t get_num_possibilities_rec(size_t   operational_bits,
-                                 size_t   damaged_bits,
-                                 size_t   unknown_bits,
-                                 size_t   start_idx,
-                                 SPN_Span groups) {
+size_t get_num_possibilities_rec(__uint128_t operational_bits,
+                                 __uint128_t damaged_bits,
+                                 __uint128_t unknown_bits,
+                                 size_t      start_idx,
+                                 size_t      minimum_required_space,
+                                 SPN_Span    groups) {
   if(groups.len == 0) return 1;
-  const size_t group_size = *(const size_t *)SPN_first(groups);
-  const size_t bits_left  = (64 - start_idx);
-  if(bits_left < group_size) return 0;
 
-  const size_t group_bits = ((1 << group_size) - 1);
+  const size_t bits_left = (128 - start_idx);
+  if(bits_left < minimum_required_space) return 0;
+
+  const size_t      group_size = *(const size_t *)SPN_first(groups);
+  const __uint128_t group_bits = ((1 << group_size) - 1);
 
   size_t num_possibilities = 0;
-  for(size_t i = start_idx; i < (64 - (group_size - 1)); i++) {
-    size_t group_shift = (64 - i - group_size);
-    size_t group_mask  = group_bits << group_shift;
-    size_t gap_mask    = ((group_mask >> 1) ^ group_mask) & ~group_mask; // wow :o
+  for(size_t i = start_idx; i < (128 - (group_size - 1)); i++) {
+    size_t      group_shift = (128 - i - group_size);
+    __uint128_t group_mask  = group_bits << group_shift;
+    __uint128_t gap_mask    = ((group_mask >> 1) ^ group_mask) & ~group_mask; // wow :o
 
-    size_t possibly_damaged_bits     = (damaged_bits | unknown_bits);
-    size_t possibly_operational_bits = (operational_bits | unknown_bits);
+    __uint128_t possibly_damaged_bits     = (damaged_bits | unknown_bits);
+    __uint128_t possibly_operational_bits = (operational_bits | unknown_bits);
 
     const bool group_fits          = ((possibly_damaged_bits & group_mask) == group_mask);
     const bool skipping_damage     = (damaged_bits & ~group_mask) > group_mask; // wooh! :D
@@ -210,8 +259,8 @@ size_t get_num_possibilities_rec(size_t   operational_bits,
 
     if(group_fits && has_gap_before_next && !skipping_damage) {
       if(groups.len == 1) {
-        int    remaining_bits = 64 - (i + group_size);
-        size_t remainder_mask = (remaining_bits == 64) ? SIZE_MAX : ((((size_t)1) << remaining_bits) - 1);
+        int         remaining_bits = 128 - (i + group_size);
+        __uint128_t remainder_mask = (remaining_bits == 128) ? SIZE_MAX : ((((__uint128_t)1) << remaining_bits) - 1);
         if(damaged_bits & remainder_mask) {
           // we still have damage remaining, this is not a possibility!
           continue;
@@ -220,19 +269,20 @@ size_t get_num_possibilities_rec(size_t   operational_bits,
         }
       } else {
         size_t new_start_idx = i + group_size + 1;
-        if(new_start_idx > 64) break; // ran out of bits!
+        if(new_start_idx > 128) break; // ran out of bits!
 
-        int    remaining_bits = 64 - new_start_idx;
-        size_t remainder_mask = (remaining_bits == 64) ? SIZE_MAX : ((((size_t)1) << remaining_bits) - 1);
+        int         remaining_bits = 128 - new_start_idx;
+        __uint128_t remainder_mask = (remaining_bits == 128) ? SIZE_MAX : ((((__uint128_t)1) << remaining_bits) - 1);
 
-        size_t remaining_operational_bits = operational_bits & remainder_mask;
-        size_t remaining_damaged_bits     = damaged_bits & remainder_mask;
-        size_t remaining_unknown_bits     = unknown_bits & remainder_mask;
+        __uint128_t remaining_operational_bits = operational_bits & remainder_mask;
+        __uint128_t remaining_damaged_bits     = damaged_bits & remainder_mask;
+        __uint128_t remaining_unknown_bits     = unknown_bits & remainder_mask;
 
         num_possibilities += get_num_possibilities_rec(remaining_operational_bits,
                                                        remaining_damaged_bits,
                                                        remaining_unknown_bits,
                                                        new_start_idx,
+                                                       minimum_required_space - (group_size + 1),
                                                        SPN_subspan(groups, 1, groups.len - 1));
       }
     }
@@ -246,10 +296,25 @@ STAT_Val get_num_possibilities_for_record(const Record * record, size_t * num_po
   CHECK(record != NULL);
   CHECK(num_possibilities != NULL);
 
+  printf("%s @ ", __func__);
+  {
+    time_t result = time(NULL);
+    if(result != (time_t)(-1)) printf("%s", asctime(gmtime(&result)));
+  }
+  print_record(record);
+
+  size_t minimum_required_space = *(const size_t *)DAR_first(&record->groups);
+  if(record->groups.size > 1) {
+    for(const size_t * g = DAR_get(&record->groups, 1); g != DAR_end(&record->groups); g++) {
+      minimum_required_space += 1 + *g;
+    }
+  }
+
   *num_possibilities = get_num_possibilities_rec(record->operational_bits,
                                                  record->damaged_bits,
                                                  record->unknown_bits,
-                                                 24,
+                                                 0,
+                                                 minimum_required_space,
                                                  DAR_to_span(&record->groups));
 
   return OK;
@@ -269,4 +334,9 @@ STAT_Val get_num_possibilities_for_all_records(const DAR_DArray * records, size_
   }
 
   return OK;
+}
+
+size_t get_num_conditions(const Record * record) {
+  if(record == NULL) return 0;
+  return popcount(record->operational_bits | record->damaged_bits | record->unknown_bits);
 }

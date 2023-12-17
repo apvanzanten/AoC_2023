@@ -32,9 +32,9 @@ set(SANITIZERS
     )
   
 set(FLAGS
-    -Og;
-    -g;
-    -DDEBUG;
+    -O3;
+    # -g;
+    # -DDEBUG;
     )
 
 add_compile_options(${WARNINGS} ${SANITIZERS} ${FLAGS})

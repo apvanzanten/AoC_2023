@@ -55,9 +55,18 @@ int main(void) {
   size_t num_possibilities_part1 = 0;
   TRY(get_num_possibilities_for_all_records(&records, &num_possibilities_part1));
 
+  TRY(expand_records_for_part2(&records));
+
+  size_t num_possibilities_part2 = 0;
+
+  TRY(get_num_possibilities_for_all_records(&records, &num_possibilities_part2));
+
   TRY(destroy_records(&records));
   TRY(DAR_destroy(&records));
   TRY(destroy_lines(&lines));
 
-  return LOG_STAT(STAT_OK, "num_possibilities_part1: %zu", num_possibilities_part1);
+  return LOG_STAT(STAT_OK,
+                  "num_possibilities_part1: %zu, num_possibilities_part2: %zu",
+                  num_possibilities_part1,
+                  num_possibilities_part2);
 }

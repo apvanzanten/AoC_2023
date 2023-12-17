@@ -176,6 +176,99 @@ static Result tst_get_num_possibilities_for_record_example(void) {
   return r;
 }
 
+static Result tst_expand_for_part2(void) {
+  Result r = PASS;
+
+  const char * lines_raw[] = {
+      ".??..??...?##. 1,1,3\n",
+      "?#?#?#?#?#?#?#? 1,3,1,6\n",
+      "????.#...#... 4,1,1\n",
+      "????.######..#####. 1,6,5\n",
+      "?###???????? 3,2,1\n",
+  };
+
+  DAR_DArray lines = {0};
+  EXPECT_OK(&r, create_lines(lines_raw, (sizeof(lines_raw) / sizeof(lines_raw[0])), &lines));
+
+  DAR_DArray records = {0};
+  EXPECT_OK(&r, DAR_create(&records, sizeof(Record)));
+
+  EXPECT_OK(&r, parse_records(&lines, &records));
+  EXPECT_OK(&r, expand_records_for_part2(&records));
+
+  EXPECT_EQ(&r, 15, ((Record *)DAR_get(&records, 0))->groups.size);
+  EXPECT_EQ(&r, 20, ((Record *)DAR_get(&records, 1))->groups.size);
+  EXPECT_EQ(&r, 15, ((Record *)DAR_get(&records, 2))->groups.size);
+  EXPECT_EQ(&r, 15, ((Record *)DAR_get(&records, 3))->groups.size);
+  EXPECT_EQ(&r, 15, ((Record *)DAR_get(&records, 3))->groups.size);
+
+  EXPECT_EQ(&r, 5 * 14 + 4, get_num_conditions(DAR_get(&records, 0)));
+  EXPECT_EQ(&r, 5 * 15 + 4, get_num_conditions(DAR_get(&records, 1)));
+  EXPECT_EQ(&r, 5 * 13 + 4, get_num_conditions(DAR_get(&records, 2)));
+  EXPECT_EQ(&r, 5 * 19 + 4, get_num_conditions(DAR_get(&records, 3)));
+  EXPECT_EQ(&r, 5 * 12 + 4, get_num_conditions(DAR_get(&records, 4)));
+
+  print_records(&records);
+
+  EXPECT_OK(&r, destroy_records(&records));
+  EXPECT_OK(&r, DAR_destroy(&records));
+  EXPECT_OK(&r, destroy_lines(&lines));
+
+  return r;
+}
+
+static Result tst_get_num_possibilities_for_record_example_part2(void) {
+  Result r = PASS;
+
+  const char * lines_raw[] = {
+      "???.### 1,1,3\n",
+      ".??..??...?##. 1,1,3\n",
+      "?#?#?#?#?#?#?#? 1,3,1,6\n",
+      "????.#...#... 4,1,1\n",
+      "????.######..#####. 1,6,5\n",
+      "?###???????? 3,2,1\n",
+  };
+
+  DAR_DArray lines = {0};
+  EXPECT_OK(&r, create_lines(lines_raw, (sizeof(lines_raw) / sizeof(lines_raw[0])), &lines));
+
+  DAR_DArray records = {0};
+  EXPECT_OK(&r, DAR_create(&records, sizeof(Record)));
+
+  EXPECT_OK(&r, parse_records(&lines, &records));
+  EXPECT_OK(&r, expand_records_for_part2(&records));
+
+  EXPECT_EQ(&r, lines.size, records.size);
+
+  size_t num_possibilities = 0;
+  EXPECT_OK(&r, get_num_possibilities_for_record(DAR_get(&records, 0), &num_possibilities));
+  EXPECT_EQ(&r, 1, num_possibilities);
+
+  EXPECT_OK(&r, get_num_possibilities_for_record(DAR_get(&records, 1), &num_possibilities));
+  EXPECT_EQ(&r, 16384, num_possibilities);
+
+  EXPECT_OK(&r, get_num_possibilities_for_record(DAR_get(&records, 2), &num_possibilities));
+  EXPECT_EQ(&r, 1, num_possibilities);
+
+  EXPECT_OK(&r, get_num_possibilities_for_record(DAR_get(&records, 3), &num_possibilities));
+  EXPECT_EQ(&r, 16, num_possibilities);
+
+  EXPECT_OK(&r, get_num_possibilities_for_record(DAR_get(&records, 4), &num_possibilities));
+  EXPECT_EQ(&r, 2500, num_possibilities);
+
+  EXPECT_OK(&r, get_num_possibilities_for_record(DAR_get(&records, 5), &num_possibilities));
+  EXPECT_EQ(&r, 506250, num_possibilities);
+
+  EXPECT_OK(&r, get_num_possibilities_for_all_records(&records, &num_possibilities));
+  EXPECT_EQ(&r, 525152, num_possibilities);
+
+  EXPECT_OK(&r, destroy_records(&records));
+  EXPECT_OK(&r, DAR_destroy(&records));
+  EXPECT_OK(&r, destroy_lines(&lines));
+
+  return r;
+}
+
 static Result tst_fixture(void * env) {
   Result r = PASS;
 
@@ -190,6 +283,8 @@ int main(void) {
       tst_get_num_possibilities_for_record_example_line1,
       tst_get_num_possibilities_for_record_example_line2,
       tst_get_num_possibilities_for_record_example,
+      tst_expand_for_part2,
+      tst_get_num_possibilities_for_record_example_part2,
   };
 
   TestWithFixture tests_with_fixture[] = {
